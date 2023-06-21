@@ -1,0 +1,75 @@
+/*Task 1: create a visualization that provides a breakdown between the male and female employees working in the company each year starting from 1990*/
+
+USE employees_mod;
+SELECT
+	YEAR(de.from_date) as year, e.gender as gender, COUNT(e.emp_no) as num_of_employees
+FROM
+	t_dept_emp as de
+JOIN
+	t_employees as e ON de.emp_no = e.emp_no
+GROUP BY
+	year, gender
+HAVING year >= 1990
+ORDER BY year;
+
+/*Task 2: Compare the number of male managers to the number of female managers from different departments for each year starting from 1990*/
+
+SELECT 
+	d.dept_name,
+    ee.gender,
+    dm.emp_no,
+    dm.from_date,
+    dm.to_date,
+    e.calendar_year,
+CASE
+	WHEN YEAR(dm.to_date) >= e.calendar_year AND
+    YEAR(dm.from_date) <= e.calendar_year THEN 1
+    ELSE 0
+END AS active
+FROM
+	(SELECT
+		YEAR(hire_date) as calendar_year
+	FROM t_employees
+    GROUP BY calendar_year) e
+    CROSS JOIN
+    t_dept_manager dm
+    JOIN
+    t_departments d ON dm.dept_no = d.dept_no
+    JOIN
+    t_employees ee ON dm.emp_no = ee.emp_no
+ORDER BY emp_no, calendar_year;
+
+/*Task 3: Compare the average salary of female vs male employees in the entirement until the year 2002 and add a filter allowing you to see that per each department*/
+SELECT 
+	YEAR(s.from_date) as calendar_year, 
+	e.emp_no as emp_no, 
+    e.gender as gender, 
+    d.dept_name as dept_name, 
+    ROUND(AVG(s.salary), 2) as avg_salary
+FROM t_salaries as s
+	JOIN t_employees as e ON s.emp_no = e.emp_no 
+    JOIN t_dept_emp as de ON e.emp_no = de.emp_no
+    JOIN t_departments as d ON de.dept_no = d.dept_no
+GROUP BY d.dept_no, calendar_year, gender
+HAVING calendar_year <= 2002
+ORDER BY d.dept_no;
+
+/*Task 4: Create an SQL stored procedure that will allow you to obtain the average male and female salary per department with a certain salary range. 
+Let this range be defined by 2 values the user can insert when calling the procedure*/
+DELIMITER $$
+USE employees_mod $$
+CREATE PROCEDURE filter_salary(IN p_min_salary FLOAT, IN p_max_salary FLOAT)
+BEGIN
+SELECT
+	d.dept_name as department_name, e.gender as gender, AVG(s.salary) as avg_salary
+	FROM t_salaries s
+    JOIN t_employees e ON s.emp_no = e.emp_no
+    JOIN t_dept_emp de ON e.emp_no = de.emp_no
+    JOIN t_departments d ON de.dept_no = d.dept_no
+WHERE s.salary BETWEEN p_min_salary AND p_max_salary
+GROUP BY department_name, gender;
+END$$
+
+DELIMITER ;
+
+CALL filter_salary(50000, 90000);
