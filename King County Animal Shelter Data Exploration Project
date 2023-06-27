@@ -1,0 +1,90 @@
+USE PortfolioProject;
+
+SELECT * FROM KingCountyPet;
+
+-- Showing count of how many distinct animals are in King County's custody
+-- There are 217 cats recorded in this dataset
+SELECT animal_type, COUNT(animal_type) as animal_count
+FROM KingCountyPet
+GROUP BY animal_type
+ORDER BY animal_count desc;
+
+-- Showing how many animals there are depending on what age range they fall under
+SELECT animal_type, age_range, COUNT(age_range) as age_range_count
+FROM KingCountyPet
+GROUP BY animal_type, age_range
+ORDER BY animal_type, age_range;
+
+-- Showing how many animals are in each of the various locations excluding lost or not applicable locations
+SELECT current_location, animal_type, COUNT(animal_type) as animal_type_count
+FROM KingCountyPet
+WHERE current_location != 'Lost' AND current_location != 'N/A'
+GROUP BY current_location, animal_type
+ORDER BY 3 desc;
+
+-- Showing a Count of the Top Breed Types in the Shelter
+-- The top breed is the domestic shorthair which is a cat breed
+SELECT Animal_type, Animal_Breed, COUNT(Animal_Breed) as animal_breed_count
+FROM KingCountyPet
+GROUP BY animal_type, animal_breed
+ORDER BY animal_breed_count desc;
+
+-- Showing how many total animals are currently listed as adoptable
+-- 51 animals are listed as adoptable
+SELECT record_type, COUNT(record_type) as adoptable_count
+FROM KingCountyPet
+WHERE Record_Type = 'Adoptable'
+GROUP BY record_type; 
+
+-- Showing what a count of animals listed as adoptable dependent on breed
+-- The top 3 breeds that are adoptable are all cat breeds
+SELECT animal_breed, COUNT(record_type) as record_type_count
+FROM KingCountyPet
+WHERE Record_Type = 'adoptable'
+GROUP BY animal_breed, record_type
+ORDER BY record_type_count desc;
+
+-- Showing percentage between lost vs. found animals
+-- Used temp tables to create calculations alongside a concat function to demonstrate this is a percentage
+-- 41.71% are lost and 46.54% are found
+CREATE TABLE temp_count (
+total_count float,
+lost_count float,
+found_count float)
+
+INSERT INTO temp_count
+SELECT 
+	Count(animal_id) as total_count,
+	COUNT(CASE WHEN record_type = 'lost' THEN 1 END) as lost_count,
+	COUNT(CASE WHEN record_type = 'found' THEN 1 END) as found_count
+FROM KingCountyPet
+
+SELECT * FROM temp_count;
+
+SELECT 
+CONCAT(ROUND(((lost_count/total_count)*100),2), '%') as lost_percentage,
+CONCAT(ROUND(((found_count/total_count)*100),2), '%') as found_percentage
+FROM temp_count;
+
+-- Showing the cities where animals came from sorted by most to least
+-- The top 3 cities where animals came from are Kent, Seattle, and Bellevue
+SELECT City, COUNT(city) as total
+FROM KingCountyPet
+WHERE City IS NOT NULL
+GROUP BY city
+ORDER BY total desc;
+
+-- Showing a record count depending what city the animal came from
+SELECT City, record_type, COUNT(record_type) as record_type_count
+FROM KingCountyPet
+WHERE City IS NOT NULL
+GROUP BY city, record_type
+ORDER BY 3 desc;
+
+-- Showing numbers of which cities have the highest lost animals
+SELECT City, record_type, COUNT(record_type) as record_type_count
+FROM KingCountyPet
+WHERE City IS NOT NULL AND record_type = 'lost'
+GROUP BY city, record_type
+ORDER BY 3 desc;
+
