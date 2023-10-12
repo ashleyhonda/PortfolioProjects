@@ -1,0 +1,266 @@
+--How many anti-trans laws were at least introduced in legislation 
+--534 Laws
+SELECT 
+	COUNT(State) as Anti_Trans_Law_Count
+FROM 
+	AntiTransLaws;
+
+--How many anti-trans laws were at least introduced in legislation in 2023
+-- 523 Laws
+WITH years_cte as (
+SELECT DatePart(yyyy, Date) as Years
+, State
+, Number
+, Status
+FROM AntiTransLaws
+)
+
+SELECT 
+	COUNT(State) as Anti_Law_Count
+FROM 
+	years_cte
+WHERE 
+	Years = 2023
+
+--How many pro-laws were at least introduced in legislation
+--311 Laws
+SELECT 
+	COUNT(State) as Pro_Law_Count
+FROM 
+	ProTransLaws
+
+-- How many pro-laws were at least introduced in legislation in 2023
+-- 297 Laws
+WITH years_cte as (
+SELECT DatePart(yyyy, Date) as Years
+, State
+, Number
+, Status
+FROM 
+	ProTransLaws
+)
+
+SELECT 
+	COUNT(State) as Pro_Law_Count
+FROM 
+	years_cte
+WHERE 
+	Years = 2023
+
+--How many laws were passed
+-- 81 laws
+SELECT 
+	COUNT(State) as Anti_Trans_Law_Count
+FROM 
+	AntiTransLaws
+WHERE 
+	Status_Simple = 'Passed';
+
+--How many laws were passed
+-- 85 Laws
+SELECT COUNT(State) as Pro_Trans_Law_Count
+FROM 
+	ProTransLaws
+WHERE 
+	Status_Simple = 'Passed';
+
+--What are the top bill types for anti-law bills
+SELECT Bill_Type
+, COUNT(Bill_Type) as Bill_Type_Count
+From 
+	AntiTransLaws
+WHERE 
+	Year = 2023
+GROUP BY 
+	Bill_Type
+ORDER BY 
+	Bill_Type_Count desc
+
+--Bill Type for Each State
+SELECT
+	states
+,   bill_type
+,   COUNT(bill_type) as bill_type_count
+FROM
+	AntiTransLaws
+GROUP BY 
+	States
+,	Bill_type
+
+--What states are producing the most anti-trans laws
+SELECT anti.States
+, COUNT(Number) as bill_count
+FROM 
+	AntiTransLaws anti
+GROUP BY 
+	anti.states
+ORDER BY 
+	bill_count desc
+ 
+-- What states are producing the most pro-trans laws
+SELECT pro.States
+, COUNT(pro.states) as bill_count
+FROM 
+	ProTransLaws pro
+GROUP BY 
+	pro.states
+ORDER BY 
+	pro.states
+
+--States and how many anti and pro laws they have at least introduced
+SELECT
+    ,COALESCE(anti.States, pro.States) AS States
+    ,COALESCE(anti.AntiTransLawsCount, 0) AS AntiTransLawsCoun
+    ,COALESCE(pro.ProTransLawsCount, 0) AS ProTransLawsCount    
+FROM
+    (SELECT 
+	States
+   ,COUNT(Number) AS AntiTransLawsCount
+     FROM 
+		AntiTransLaws
+     GROUP BY 
+		States) AS anti
+FULL OUTER JOIN
+    (SELECT 
+		States
+	   ,COUNT(Number) AS ProTransLawsCount
+     FROM 
+		ProTransLaws
+     GROUP BY 
+		States) AS pro
+ON
+    anti.States = pro.States
+WHERE 
+	anti.states != 'US';
+
+
+--How many laws are being introduced per month and year
+SELECT 
+	Year
+,	Months
+,	COUNT(Number) as Bill_Count
+FROM 
+	AntiTransLaws
+WHERE 
+	MONTHS IS NOT NULL
+GROUP BY 
+	Year
+,	Months
+ORDER BY 
+	Year
+,	Months
+
+--How many bills are introduced by state and date
+SELECT
+	states
+,   date
+,   COUNT(Number) as Bill_Count
+FROM 
+	AntiTransLaws
+WHERE
+	DATE is not null
+GROUP BY 
+	States
+,	Date
+ORDER BY
+	Date
+
+--How many laws are in the different risk categories
+SELECT
+	Risk_Category
+,	COUNT(number) as risk_count
+FROM 
+	AntiTransLaws
+GROUP BY 
+	Risk_Category
+ORDER BY 
+	risk_count desc
+
+--How many laws are in the different stages of bill process
+SELECT
+	Status_simple
+,	COUNT(number) as status_count
+FROM 
+	AntiTransLaws
+WHERE 
+	status_simple IS NOT NULL
+GROUP BY 
+	Status_Simple
+ORDER BY 
+	status_count desc
+
+
+--Creating first view of pro vs anti laws per state
+CREATE VIEW pro_v_anti_p_state AS
+SELECT
+    COALESCE(anti.States, pro.States) AS States
+    ,COALESCE(anti.AntiTransLawsCount, 0) AS AntiTransLawsCoun
+    ,COALESCE(pro.ProTransLawsCount, 0) AS ProTransLawsCount    
+FROM
+    (SELECT States, COUNT(*) AS AntiTransLawsCount
+     FROM AntiTransLaws
+     GROUP BY States) AS anti
+FULL OUTER JOIN
+    (SELECT States, COUNT(*) AS ProTransLawsCount
+     FROM ProTransLaws
+     GROUP BY States) AS pro
+ON
+    anti.States = pro.States
+;
+
+--Creating Second View of Bill Type Introduced the Most for anti-laws
+CREATE VIEW bill_type_count AS
+SELECT
+	states
+,   status_simple
+,   bill_type
+,   COUNT(bill_type) as bill_type_count
+FROM
+	AntiTransLaws
+WHERE status_simple is not null
+GROUP BY 
+	States
+,   Status_simple
+,	Bill_type
+
+
+--Creating Third view of how many bills were produced each month and year
+CREATE VIEW bill_per_year_month AS
+SELECT 
+	Year
+,	Months
+,	COUNT(Number) as Bill_Count
+FROM AntiTransLaws
+WHERE MONTHS IS NOT NULL
+GROUP BY 
+  Year
+, Months
+
+--Creating fourth view on how many anti trans bills were at least introduced 
+CREATE VIEW anti_law_introduce AS
+SELECT COUNT(States) as Anti_Trans_Law_Count
+FROM AntiTransLaws;
+
+--Creating fifth view on how many pro tran bills were at least introduced
+CREATE VIEW pro_law_introduce AS
+SELECT COUNT(States) as Pro_Law_Count
+FROM ProTransLaws
+
+--Creating sixth view on the risk category
+CREATE VIEW risk_category_count AS
+SELECT 
+	States
+,	Risk_Category
+,	COUNT(Risk_Category) as risk_count
+FROM AntiTransLaws
+WHERE
+	Risk_category IN ('DO NOT TRAVEL', 'Worst')
+GROUP BY 
+	States	
+,	Risk_Category
+ORDER BY 
+	Risk_Category asc
+,	Risk_count desc
+
+
+
